@@ -78,9 +78,6 @@ def filter_nodelist(nodelist, valid_nodes):
 def filter_json(graph, nodes, nodelist):
 	valid_nodes = get_nodes_validity(nodes)
 
-	# force Pl-Goethe to be part of FFV
-	valid_nodes['60e327c73940'] = True
-
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
