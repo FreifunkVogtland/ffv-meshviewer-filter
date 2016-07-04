@@ -78,6 +78,15 @@ def filter_nodelist(nodelist, valid_nodes):
 def filter_json(graph, nodes, nodelist):
 	valid_nodes = get_nodes_validity(nodes)
 
+	# force server brewster with old ffnord-alfred-announce to be part of FFV
+	valid_nodes['7446a06579d2'] = True
+
+	# force server newton with old ffnord-alfred-announce to be part of FFV
+	valid_nodes['001d92340f69'] = True
+
+	# force server pascal with old ffnord-alfred-announce to be part of FFV
+	valid_nodes['e89a8f508b7b'] = True
+
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
