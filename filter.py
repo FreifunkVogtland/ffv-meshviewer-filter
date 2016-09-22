@@ -46,12 +46,12 @@ def filter_graph(graph, valid_nodes):
 
 	# calculate new list of nodes but first create mapping for old to new node index
 	for n in graph['batadv']['nodes']:
-		if 'node_id' in n and valid_nodes[n['node_id']]:
+		if 'node_id' in n and n['node_id'] in valid_nodes and valid_nodes[n['node_id']]:
 			pos_map[orig_pos] = new_pos
 			new_pos += 1
 		orig_pos += 1
 
-	nodes_ffv = filter(lambda n:'node_id' in n and valid_nodes[n['node_id']], graph['batadv']['nodes'])
+	nodes_ffv = filter(lambda n:'node_id' in n and n['node_id'] in valid_nodes and valid_nodes[n['node_id']], graph['batadv']['nodes'])
 	graph['batadv']['nodes'] = list(nodes_ffv)
 
 	# filter links with their new ids
@@ -71,7 +71,7 @@ def filter_graph(graph, valid_nodes):
 	graph['batadv']['links'] = new_links
 
 def filter_nodelist(nodelist, valid_nodes):
-	nodes_ffv = filter(lambda n: valid_nodes[n['id']], nodelist['nodes'])
+	nodes_ffv = filter(lambda n: n['id'] in valid_nodes and valid_nodes[n['id']], nodelist['nodes'])
 
 	nodelist['nodes'] = list(nodes_ffv)
 
