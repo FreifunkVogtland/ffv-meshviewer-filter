@@ -39,6 +39,16 @@ def filter_nodes(nodes, valid_nodes):
 
 	nodes['nodes'] = list(nodes_ffv)
 
+	# remove owner information
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'owner' in n['nodeinfo']:
+			continue
+
+		del n['nodeinfo']['owner']
+
 def filter_graph(graph, valid_nodes):
 	orig_pos = 0
 	new_pos = 0
