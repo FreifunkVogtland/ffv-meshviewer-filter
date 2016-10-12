@@ -32,6 +32,12 @@ def main():
 
 		nodeinfo = n['nodeinfo']
 
+		if not 'hostname' in nodeinfo:
+			continue
+
+		if not nodeinfo['hostname'].lower().startswith('ffv-'):
+			continue
+
 		if not 'software' in nodeinfo:
 			continue
 
@@ -44,7 +50,7 @@ def main():
 		if not 'release' in firmware:
 			continue
 
-		if not firmware['release'].endswith('-v'):
+		if firmware['release'] != 'b20161010-v':
 			continue
 
 		n['lastseen'] = '2016-09-04T23:35:02'
