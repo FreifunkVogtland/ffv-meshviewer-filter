@@ -4,6 +4,7 @@
 import sys
 import os, os.path
 import json
+import re
 
 def dump_json(data, filename):
 	with open(filename, 'w') as f:
@@ -15,6 +16,15 @@ def valid_node(n):
 	# is vpn?
 	if 'vpn' in n['nodeinfo'] and n['nodeinfo']['vpn']:
 		return True
+
+	# node with default config offline?
+	online = True;
+	if 'flags' in n and 'online' in n['flags'] and not n['flags']['online']:
+		online = False
+
+	ffvmac = re.compile("ffv-[0-9a-f]{6}")
+	if online == False and 'hostname' in n['nodeinfo'] and ffvmac.match(n['nodeinfo']['hostname']):
+		return False
 
 	return True
 
