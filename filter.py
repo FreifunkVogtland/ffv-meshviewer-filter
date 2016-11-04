@@ -12,15 +12,11 @@ def dump_json(data, filename):
 		os.fsync(f.fileno())
 
 def valid_node(n):
-	# is ffv firmware?
-	if n['nodeinfo']['software']['firmware']['release'].endswith('-v'):
-		return True
-
 	# is vpn?
 	if 'vpn' in n['nodeinfo'] and n['nodeinfo']['vpn']:
 		return True
 
-	return False
+	return True
 
 def get_nodes_validity(nodes):
 	return {n['nodeinfo']['node_id']: valid_node(n) for n in nodes['nodes']}
