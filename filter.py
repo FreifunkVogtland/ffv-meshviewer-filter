@@ -84,6 +84,65 @@ def filter_graph(graph, valid_nodes):
 
 	graph['batadv']['links'] = new_links
 
+def map_gateway_addresses(nodes, graph, valid_nodes):
+	graph_mappings = {}
+
+	# find macs which are known by graph.json for each node_id
+	for n in graph['batadv']['nodes']:
+		if not 'id' in n:
+			continue
+
+		if not 'node_id' in n:
+			continue
+
+		graph_mappings[n['node_id']] = n['id']
+
+	# prepare mapping of interface mac to "primary" mac
+	primary_mac_mapping = {}
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'node_id' in n['nodeinfo']:
+			continue
+
+		node_id = n['nodeinfo']['node_id']
+		if not node_id in graph_mappings:
+			continue
+
+		if not 'network' in n['nodeinfo']:
+			continue
+
+		if not 'mesh_interfaces' in n['nodeinfo']['network']:
+			continue
+
+		mesh_interfaces = n['nodeinfo']['network']['mesh_interfaces']
+
+		for mac in mesh_interfaces:
+			if mac in graph_mappings:
+				continue
+
+			primary_mac_mapping[mac] = graph_mappings[node_id]
+
+	# convert gateway and gateway_nexthop to its graph.json "primary_mac"
+	for n in nodes['nodes']:
+		if not 'statistics' in n:
+			continue
+
+		if 'gateway' in n['statistics']:
+			gateway = n['statistics']['gateway']
+			if gateway in primary_mac_mapping:
+				gateway = primary_mac_mapping[gateway]
+
+			n['statistics']['gateway'] = gateway
+
+		if 'gateway_nexthop' in n['statistics']:
+			gateway_nexthop = n['statistics']['gateway_nexthop']
+			if gateway_nexthop in primary_mac_mapping:
+				gateway_nexthop = primary_mac_mapping[gateway_nexthop]
+
+			n['statistics']['gateway_nexthop'] = gateway_nexthop
+
 def filter_nodelist(nodelist, valid_nodes):
 	nodes_ffv = filter(lambda n: n['id'] in valid_nodes and valid_nodes[n['id']], nodelist['nodes'])
 
@@ -103,6 +162,7 @@ def filter_json(graph, nodes, nodelist):
 
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
+	map_gateway_addresses(nodes, graph, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
 
 def main():
