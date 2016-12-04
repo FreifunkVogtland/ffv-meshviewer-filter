@@ -84,6 +84,47 @@ def filter_graph(graph, valid_nodes):
 
 	graph['batadv']['links'] = new_links
 
+def append_mapping_graph(graph, nodes, valid_nodes):
+	known_mappings = {}
+
+	for n in graph['batadv']['nodes']:
+		if not 'id' in n:
+			continue
+
+		if not 'node_id' in n:
+			continue
+
+		known_mappings[n['id']] = n['node_id']
+
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'node_id' in n['nodeinfo']:
+			continue
+
+		node_id = n['nodeinfo']['node_id']
+		if not node_id in valid_nodes or not valid_nodes[node_id]:
+			continue
+
+		if not 'network' in n['nodeinfo']:
+			continue
+
+		if not 'mesh_interfaces' in n['nodeinfo']['network']:
+			continue
+
+		mesh_interfaces = n['nodeinfo']['network']['mesh_interfaces']
+
+		for mac in mesh_interfaces:
+			if mac in known_mappings:
+				continue
+
+			known_mappings[mac] = node_id
+			graph['batadv']['nodes'].append({
+				'id': mac,
+				'node_id': node_id
+			})
+
 def filter_nodelist(nodelist, valid_nodes):
 	nodes_ffv = filter(lambda n: n['id'] in valid_nodes and valid_nodes[n['id']], nodelist['nodes'])
 
@@ -103,6 +144,7 @@ def filter_json(graph, nodes, nodelist):
 
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
+	append_mapping_graph(graph, nodes, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
 
 def main():
