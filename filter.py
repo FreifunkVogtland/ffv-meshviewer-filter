@@ -148,6 +148,77 @@ def filter_nodelist(nodelist, valid_nodes):
 
 	nodelist['nodes'] = list(nodes_ffv)
 
+def get_ifmac_types(nodes):
+	mactypes = {}
+
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'node_id' in n['nodeinfo']:
+			continue
+
+		if not 'network' in n['nodeinfo']:
+			continue
+
+		if not 'mesh' in n['nodeinfo']['network']:
+			continue
+
+		mesh = n['nodeinfo']['network']['mesh']
+		for meshif in mesh:
+			if not 'interfaces' in mesh[meshif]:
+				continue
+
+			interfaces = mesh[meshif]['interfaces']
+			for t in interfaces:
+				for mac in interfaces[t]:
+					mactypes[mac] = t
+
+	return mactypes
+
+def map_graph_link_types(graph, mactypes):
+	if not 'batadv' in graph:
+		return
+
+	if not 'links' in graph['batadv']:
+		return
+
+	links = graph['batadv']['links']
+
+	# assigning type
+	for l in links:
+		mac_dst = l.get('dst')
+		mac_src = l.get('dst')
+
+		td = None
+		if mac_dst in mactypes:
+			td = mactypes[mac_dst]
+
+		ts = None
+		if mac_src in mactypes:
+			ts = mactypes[mac_src]
+
+		if ts == 'l2tp' or td == 'l2tp':
+			l['type'] = 'l2tp'
+		elif ts == 'fastd' or td == 'fastd':
+			l['type'] = 'fastd'
+		elif ts == 'tunnel' or td == 'tunnel':
+			l['type'] = 'fastd'
+		elif td:
+			l['type'] = td
+
+	# cleanup
+	for l in links:
+		if 'dst' in l:
+			del(l['dst'])
+
+		if 'src' in l:
+			del(l['src'])
+
+		# remove VPN info when we have tunnel type
+		if 'type' in l and 'vpn' in l:
+			del(l['vpn'])
+
 def filter_json(graph, nodes, nodelist):
 	valid_nodes = get_nodes_validity(nodes)
 
@@ -164,6 +235,9 @@ def filter_json(graph, nodes, nodelist):
 	filter_graph(graph, valid_nodes)
 	map_gateway_addresses(nodes, graph, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
+
+	mactypes = get_ifmac_types(nodes)
+	map_graph_link_types(graph, mactypes)
 
 def main():
 	if len(sys.argv) != 3:
