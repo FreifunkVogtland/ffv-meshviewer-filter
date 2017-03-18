@@ -219,6 +219,49 @@ def map_graph_link_types(graph, mactypes):
 		if 'type' in l and 'vpn' in l:
 			del(l['vpn'])
 
+def add_chaninfo(n, freq):
+	if not 'nodeinfo' in n:
+		n['nodeinfo'] = {}
+
+	if not 'wireless' in n['nodeinfo']:
+		n['nodeinfo']['wireless'] = {}
+
+	if freq >= 2412 and freq <= 2484:
+		if (freq - 2407) % 5 != 0:
+			return
+
+		n['nodeinfo']['wireless']['chan2'] = int((freq - 2407) / 5)
+		return
+
+	if freq >= 4915 and freq <= 4980:
+		if (freq - 4000) % 5 != 0:
+			return
+
+		n['nodeinfo']['wireless']['chan5'] = int((freq - 4000) / 5)
+		return
+
+	if freq >= 5035 and freq <= 5825:
+		if (freq - 5000) % 5 != 0:
+			return 0;
+
+		n['nodeinfo']['wireless']['chan5'] = int((freq - 5000) / 5)
+		return
+
+def generate_wireless_stats_node(n):
+	for raw in n['statistics']['wireless_raw']:
+		if 'frequency' in raw:
+			add_chaninfo(n, raw['frequency'])
+
+def generate_wireless_stats(nodes):
+	for n in nodes['nodes']:
+		if not 'statistics' in n:
+			continue
+
+		if not 'wireless_raw' in n['statistics']:
+			continue
+
+		generate_wireless_stats_node(n)
+
 def filter_json(graph, nodes, nodelist):
 	valid_nodes = get_nodes_validity(nodes)
 
@@ -238,6 +281,8 @@ def filter_json(graph, nodes, nodelist):
 
 	mactypes = get_ifmac_types(nodes)
 	map_graph_link_types(graph, mactypes)
+
+	generate_wireless_stats(nodes)
 
 def main():
 	if len(sys.argv) != 3:
