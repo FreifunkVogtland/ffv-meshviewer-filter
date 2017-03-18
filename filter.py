@@ -247,17 +247,20 @@ def add_chaninfo(n, freq):
 		n['nodeinfo']['wireless']['chan5'] = int((freq - 5000) / 5)
 		return
 
-def add_airtimeinfo(n, freq, busy, active):
-	band = None
-
-	if freq >= 2412 and freq <= 2484:
-		band = 2
-	elif freq >= 4915 and freq <= 4980:
-		band = 5
-	elif freq >= 5035 and freq <= 5825:
-		band = 5
-	else:
+def add_airtimeinfo(n, band, airtimes, airtimes_last):
+	if not 'busy' in airtimes[band]:
 		return
+
+	if not 'active' in airtimes[band]:
+		return
+
+	busy = airtimes[band]['busy']
+	active = airtimes[band]['active']
+
+	if 'busy' in airtimes_last[band] and 'active' in airtimes_last[band]:
+		if airtimes_last[band]['busy'] < busy and airtimes_last[band]['active'] < active:
+			active -= airtimes_last[band]['active']
+			busy -= airtimes_last[band]['busy']
 
 	if busy > active:
 		return
@@ -270,13 +273,49 @@ def add_airtimeinfo(n, freq, busy, active):
 
 	n['statistics']['wireless']['airtime' + str(band)] = float(busy) / float(active)
 
+def sum_airtimes(n, name):
+	airtimes = {}
+
+	for raw in n['statistics'][name]:
+		if not 'frequency' in raw:
+			continue
+
+		freq = raw['frequency']
+		if freq >= 2412 and freq <= 2484:
+			band = 2
+		elif freq >= 4915 and freq <= 4980:
+			band = 5
+		elif freq >= 5035 and freq <= 5825:
+			band = 5
+		else:
+			continue
+
+		if not band in airtimes:
+			airtimes[band] = {}
+
+		if 'busy' in raw:
+			if not 'busy' in airtimes[band]:
+				airtimes[band]['busy'] = 0
+			airtimes[band]['busy'] += raw['busy']
+
+		if 'active' in raw:
+			if not 'active' in airtimes[band]:
+				airtimes[band]['active'] = 0
+			airtimes[band]['active'] += raw['active']
+
+	return airtimes
+
 def generate_wireless_stats_node(n):
+	airtimes = sum_airtimes(n, 'wireless_raw')
+	airtimes_last = sum_airtimes(n, 'wireless_last')
+
+	for band in airtimes:
+		add_airtimeinfo(n, band, airtimes, airtimes_last)
+
 	for raw in n['statistics']['wireless_raw']:
 		if 'frequency' in raw:
 			add_chaninfo(n, raw['frequency'])
 
-		if 'busy' in raw and 'active' in raw:
-			add_airtimeinfo(n, raw['frequency'], raw['busy'], raw['active'])
 
 def generate_wireless_stats(nodes):
 	for n in nodes['nodes']:
