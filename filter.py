@@ -273,8 +273,6 @@ def add_airtimeinfo(n, band, airtimes, airtimes_last):
 
 	if float(active) != 0:
 		n['statistics']['wireless']['airtime' + str(band)] = float(busy) / float(active)
-	else:
-		n['statistics']['wireless']['airtime' + str(band)] = 42
 
 def sum_airtimes(n, name):
 	airtimes = {}
