@@ -326,6 +326,9 @@ def generate_wireless_stats(nodes):
 		if not 'wireless_raw' in n['statistics']:
 			continue
 
+		if not 'wireless_last' in n['statistics']:
+			continue
+
 		generate_wireless_stats_node(n)
 
 def filter_json(graph, nodes, nodelist):
