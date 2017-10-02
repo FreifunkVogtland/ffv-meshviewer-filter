@@ -188,7 +188,7 @@ def map_graph_link_types(graph, mactypes):
 	# assigning type
 	for l in links:
 		mac_dst = l.get('dst')
-		mac_src = l.get('dst')
+		mac_src = l.get('src')
 
 		td = None
 		if mac_dst in mactypes:
