@@ -199,11 +199,11 @@ def map_graph_link_types(graph, mactypes):
 			ts = mactypes[mac_src]
 
 		if ts == 'l2tp' or td == 'l2tp':
-			l['type'] = 'l2tp'
+			l['type'] = 'tunnel'
 		elif ts == 'fastd' or td == 'fastd':
-			l['type'] = 'fastd'
+			l['type'] = 'tunnel'
 		elif ts == 'tunnel' or td == 'tunnel':
-			l['type'] = 'fastd'
+			l['type'] = 'tunnel'
 		elif td:
 			l['type'] = td
 
