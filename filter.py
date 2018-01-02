@@ -84,6 +84,17 @@ def filter_graph(graph, valid_nodes):
 
 	graph['batadv']['links'] = new_links
 
+def mesh_interfaces_mac(mesh_json):
+	macs = []
+	for bat in mesh_json:
+		if not 'interfaces' in mesh_json[bat]:
+			continue
+
+		for types in mesh_json[bat]['interfaces']:
+			macs += mesh_json[bat]['interfaces'][types]
+
+	return macs
+
 def map_gateway_addresses(nodes, graph, valid_nodes):
 	graph_mappings = {}
 
@@ -113,10 +124,10 @@ def map_gateway_addresses(nodes, graph, valid_nodes):
 		if not 'network' in n['nodeinfo']:
 			continue
 
-		if not 'mesh_interfaces' in n['nodeinfo']['network']:
+		if not 'mesh' in n['nodeinfo']['network']:
 			continue
 
-		mesh_interfaces = n['nodeinfo']['network']['mesh_interfaces']
+		mesh_interfaces = mesh_interfaces_mac(n['nodeinfo']['network']['mesh'])
 
 		for mac in mesh_interfaces:
 			if mac in graph_mappings:
