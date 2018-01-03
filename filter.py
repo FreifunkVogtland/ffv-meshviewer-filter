@@ -381,11 +381,15 @@ def main():
 	nodelist_in = os.path.join(inpath, "nodelist.json")
 	nodelist_out = os.path.join(outpath, "nodelist.json")
 	nodelist_outtmp = os.path.join(outpath, "nodelist.json.tmp")
+	meshviewer_in = os.path.join(inpath, "meshviewer.json")
+	meshviewer_out = os.path.join(outpath, "meshviewer.json")
+	meshviewer_outtmp = os.path.join(outpath, "meshviewer.json.tmp")
 
 	# load
 	graph = json.load(open(graph_in))
 	nodes = json.load(open(nodes_in))
 	nodelist = json.load(open(nodelist_in))
+	meshviewer = json.load(open(meshviewer_in))
 
 	filter_json(graph, nodes, nodelist)
 
@@ -393,10 +397,12 @@ def main():
 	dump_json(graph, graph_outtmp)
 	dump_json(nodes, nodes_outtmp)
 	dump_json(nodelist, nodelist_outtmp)
+	dump_json(meshviewer, meshviewer_outtmp)
 
 	os.rename(graph_outtmp, graph_out)
 	os.rename(nodes_outtmp, nodes_out)
 	os.rename(nodelist_outtmp, nodelist_out)
+	os.rename(meshviewer_outtmp, meshviewer_out)
 
 if __name__ == "__main__":
 	main()
