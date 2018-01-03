@@ -29,29 +29,11 @@ def valid_node(n):
 def get_nodes_validity(nodes):
 	return {n['nodeinfo']['node_id']: valid_node(n) for n in nodes['nodes']}
 
-def drop_contact_info(n):
-	if 'owner' in n:
-		del(n['owner'])
-	return n
-
 def filter_nodes(nodes, valid_nodes):
-	# filter contact info due to privacy concerns
-	nodes_priv = map(drop_contact_info, nodes['nodes'])
-
 	# only save valid nodes
-	nodes_ffv = filter(lambda n: valid_nodes[n['nodeinfo']['node_id']], nodes_priv)
+	nodes_ffv = filter(lambda n: valid_nodes[n['nodeinfo']['node_id']], nodes['nodes'])
 
 	nodes['nodes'] = list(nodes_ffv)
-
-	# remove owner information
-	for n in nodes['nodes']:
-		if not 'nodeinfo' in n:
-			continue
-
-		if not 'owner' in n['nodeinfo']:
-			continue
-
-		del n['nodeinfo']['owner']
 
 def filter_meshviewer(meshviewer, valid_nodes):
 	# only save valid nodes
@@ -61,13 +43,6 @@ def filter_meshviewer(meshviewer, valid_nodes):
 	nodes_src = filter(lambda n: valid_nodes[n['source']], meshviewer['links'])
 	nodes_dst = filter(lambda n: valid_nodes[n['target']], nodes_src)
 	meshviewer['links'] = list(nodes_dst)
-
-	# remove owner information
-	for n in meshviewer['nodes']:
-		if not 'owner' in n:
-			continue
-
-		del n['owner']
 
 def filter_graph(graph, valid_nodes):
 	orig_pos = 0
