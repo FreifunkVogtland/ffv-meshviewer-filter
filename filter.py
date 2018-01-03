@@ -75,76 +75,6 @@ def filter_graph(graph, valid_nodes):
 
 	graph['batadv']['links'] = new_links
 
-def mesh_interfaces_mac(mesh_json):
-	macs = []
-	for bat in mesh_json:
-		if not 'interfaces' in mesh_json[bat]:
-			continue
-
-		for types in mesh_json[bat]['interfaces']:
-			macs += mesh_json[bat]['interfaces'][types]
-
-	return macs
-
-def map_gateway_addresses(nodes, graph, valid_nodes):
-	graph_mappings = {}
-
-	# find macs which are known by graph.json for each node_id
-	for n in graph['batadv']['nodes']:
-		if not 'id' in n:
-			continue
-
-		if not 'node_id' in n:
-			continue
-
-		graph_mappings[n['node_id']] = n['id']
-
-	# prepare mapping of interface mac to "primary" mac
-	primary_mac_mapping = {}
-	for n in nodes['nodes']:
-		if not 'nodeinfo' in n:
-			continue
-
-		if not 'node_id' in n['nodeinfo']:
-			continue
-
-		node_id = n['nodeinfo']['node_id']
-		if not node_id in graph_mappings:
-			continue
-
-		if not 'network' in n['nodeinfo']:
-			continue
-
-		if not 'mesh' in n['nodeinfo']['network']:
-			continue
-
-		mesh_interfaces = mesh_interfaces_mac(n['nodeinfo']['network']['mesh'])
-
-		for mac in mesh_interfaces:
-			if mac in graph_mappings:
-				continue
-
-			primary_mac_mapping[mac] = graph_mappings[node_id]
-
-	# convert gateway and gateway_nexthop to its graph.json "primary_mac"
-	for n in nodes['nodes']:
-		if not 'statistics' in n:
-			continue
-
-		if 'gateway' in n['statistics']:
-			gateway = n['statistics']['gateway']
-			if gateway in primary_mac_mapping:
-				gateway = primary_mac_mapping[gateway]
-
-			n['statistics']['gateway'] = gateway
-
-		if 'gateway_nexthop' in n['statistics']:
-			gateway_nexthop = n['statistics']['gateway_nexthop']
-			if gateway_nexthop in primary_mac_mapping:
-				gateway_nexthop = primary_mac_mapping[gateway_nexthop]
-
-			n['statistics']['gateway_nexthop'] = gateway_nexthop
-
 def filter_nodelist(nodelist, valid_nodes):
 	nodes_ffv = filter(lambda n: n['id'] in valid_nodes and valid_nodes[n['id']], nodelist['nodes'])
 
@@ -333,13 +263,77 @@ def generate_wireless_stats(nodes):
 
 		generate_wireless_stats_node(n)
 
+def add_gw_nexthop(nodes, meshviewer):
+	nexthops_id = {}
+	for n in meshviewer['nodes']:
+		if not 'gateway_nexthop' in n:
+			continue
+
+		if not 'node_id' in n:
+			continue
+
+		nexthops_id[n['node_id']] = n['gateway_nexthop']
+
+	gw_id = {}
+	for n in meshviewer['nodes']:
+		if not 'gateway' in n:
+			continue
+
+		if not 'node_id' in n:
+			continue
+
+		gw_id[n['node_id']] = n['gateway']
+
+	# prepare mapping of interface mac to "primary" mac
+	primary_mac_mapping = {}
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'node_id' in n['nodeinfo']:
+			continue
+
+		node_id = n['nodeinfo']['node_id']
+
+		if not 'network' in n['nodeinfo']:
+			continue
+
+		if not 'mac' in n['nodeinfo']['network']:
+			continue
+
+		primary_mac_mapping[node_id] = n['nodeinfo']['network']['mac']
+
+	for n in nodes['nodes']:
+		if not 'nodeinfo' in n:
+			continue
+
+		if not 'node_id' in n['nodeinfo']:
+			continue
+
+		if not 'statistics' in n:
+			continue
+
+		if n['nodeinfo']['node_id'] in gw_id:
+			node_gw_id = gw_id[n['nodeinfo']['node_id']]
+			if not node_gw_id in primary_mac_mapping:
+				continue
+
+			n['statistics']['gateway'] = primary_mac_mapping[node_gw_id]
+
+		if n['nodeinfo']['node_id'] in nexthops_id:
+			node_gw_id = nexthops_id[n['nodeinfo']['node_id']]
+			if not node_gw_id in primary_mac_mapping:
+				continue
+
+			n['statistics']['gateway_nexthop'] = primary_mac_mapping[node_gw_id]
+
 def filter_json(graph, nodes, nodelist, meshviewer):
 	valid_nodes = get_nodes_validity(nodes)
 
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
 	filter_meshviewer(meshviewer, valid_nodes)
-	map_gateway_addresses(nodes, graph, valid_nodes)
+	add_gw_nexthop(nodes, meshviewer)
 	filter_nodelist(nodelist, valid_nodes)
 
 	mactypes = get_ifmac_types(nodes)
