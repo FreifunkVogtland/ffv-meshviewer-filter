@@ -53,6 +53,22 @@ def filter_nodes(nodes, valid_nodes):
 
 		del n['nodeinfo']['owner']
 
+def filter_meshviewer(meshviewer, valid_nodes):
+	# only save valid nodes
+	nodes_ffv = filter(lambda n: valid_nodes[n['node_id']], meshviewer['nodes'])
+	meshviewer['nodes'] = list(nodes_ffv)
+
+	nodes_src = filter(lambda n: valid_nodes[n['source']], meshviewer['links'])
+	nodes_dst = filter(lambda n: valid_nodes[n['target']], nodes_src)
+	meshviewer['links'] = list(nodes_dst)
+
+	# remove owner information
+	for n in meshviewer['nodes']:
+		if not 'owner' in n:
+			continue
+
+		del n['owner']
+
 def filter_graph(graph, valid_nodes):
 	orig_pos = 0
 	new_pos = 0
@@ -342,7 +358,7 @@ def generate_wireless_stats(nodes):
 
 		generate_wireless_stats_node(n)
 
-def filter_json(graph, nodes, nodelist):
+def filter_json(graph, nodes, nodelist, meshviewer):
 	valid_nodes = get_nodes_validity(nodes)
 
 	# force server brewster with old ffnord-alfred-announce to be part of FFV
@@ -356,6 +372,7 @@ def filter_json(graph, nodes, nodelist):
 
 	filter_nodes(nodes, valid_nodes)
 	filter_graph(graph, valid_nodes)
+	filter_meshviewer(meshviewer, valid_nodes)
 	map_gateway_addresses(nodes, graph, valid_nodes)
 	filter_nodelist(nodelist, valid_nodes)
 
@@ -391,7 +408,7 @@ def main():
 	nodelist = json.load(open(nodelist_in))
 	meshviewer = json.load(open(meshviewer_in))
 
-	filter_json(graph, nodes, nodelist)
+	filter_json(graph, nodes, nodelist, meshviewer)
 
 	# save
 	dump_json(graph, graph_outtmp)
