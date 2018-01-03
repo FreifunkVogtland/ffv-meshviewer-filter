@@ -7,7 +7,7 @@ import json
 
 def dump_json(data, filename):
 	with open(filename, 'w') as f:
-		json.dump(data, f)
+		json.dump(data, f, sort_keys=True, indent=4, separators=(',', ': '))
 		f.flush()
 		os.fsync(f.fileno())
 
@@ -193,6 +193,7 @@ def extract_graph(meshviewer):
 			endpoints.append({
 				"node_id": src[0],
 				"id": src[1],
+				"pos": pos,
 			})
 			endpoints_map[src] = pos
 			pos += 1
@@ -201,6 +202,7 @@ def extract_graph(meshviewer):
 			endpoints.append({
 				"node_id": dst[0],
 				"id": dst[1],
+				"pos": pos,
 			})
 			endpoints_map[dst] = pos
 			pos += 1
@@ -221,6 +223,8 @@ def extract_graph(meshviewer):
 
 		links.append({
 			"key" : 0,
+			"src": src[1],
+			"dst": dst[1],
 			"source" : endpoints_map[src],
 			"target" : endpoints_map[dst],
 			"tq" : 1. / l['source_tq'],
@@ -229,6 +233,8 @@ def extract_graph(meshviewer):
 
 		links.append({
 			"key" : 0,
+			"src": dst[1],
+			"dst": src[1],
 			"source" : endpoints_map[dst],
 			"target" : endpoints_map[src],
 			"tq" : 1. / l['target_tq'],
