@@ -152,6 +152,17 @@ def extract_graph(meshviewer):
 	endpoints = graph['batadv']['nodes']
 	links = graph['batadv']['links']
 
+	# prepare mapping of interface mac to "primary" mac
+	primary_mac_mapping = {}
+	for n in meshviewer['nodes']:
+		if not 'node_id' in n:
+			continue
+		if not 'mac' in n:
+			continue
+
+		primary_mac_mapping[n['node_id']] = n['mac']
+
+
 	pos = 0
 	for l in meshviewer['links']:
 		if not 'source' in l:
@@ -169,8 +180,14 @@ def extract_graph(meshviewer):
 		if not 'type' in l:
 			continue
 
-		src = (l['source'], l['source_mac'])
-		dst = (l['target'], l['target_mac'])
+		if not l['source'] in primary_mac_mapping:
+			continue
+
+		if not l['target'] in primary_mac_mapping:
+			continue
+
+		src = (l['source'], primary_mac_mapping[l['source']])
+		dst = (l['target'], primary_mac_mapping[l['target']])
 
 		if not src in endpoints_map:
 			endpoints.append({
@@ -204,8 +221,6 @@ def extract_graph(meshviewer):
 
 		links.append({
 			"key" : 0,
-			"src" : l['source_mac'],
-			"dst" : l['target_mac'],
 			"source" : endpoints_map[src],
 			"target" : endpoints_map[dst],
 			"tq" : 1. / l['source_tq'],
@@ -214,8 +229,6 @@ def extract_graph(meshviewer):
 
 		links.append({
 			"key" : 0,
-			"src" : l['target_mac'],
-			"dst" : l['source_mac'],
 			"source" : endpoints_map[dst],
 			"target" : endpoints_map[src],
 			"tq" : 1. / l['target_tq'],
