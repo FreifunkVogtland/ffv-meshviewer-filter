@@ -215,6 +215,28 @@ def add_gw_nexthop(nodes, meshviewer):
 
 			n['statistics']['gateway_nexthop'] = primary_mac_mapping[node_gw_id]
 
+def add_uplink(nodes):
+	for n in nodes['nodes']:
+		if not 'flags' in n:
+			continue
+
+		n['flags']['uplink'] = False
+
+		if not 'statistics' in n:
+			continue
+
+		if not 'gateway' in n['statistics']:
+			continue
+
+		if not 'gateway_nexthop' in n['statistics']:
+			continue
+
+		# TODO maybe it is better to check the graph for links with type 'vpn'
+		if n['statistics']['gateway'] != n['statistics']['gateway_nexthop']:
+			continue
+
+		n['flags']['uplink'] = True
+
 def filter_json(graph, nodes, nodelist, meshviewer):
 	valid_nodes = get_nodes_validity(nodes)
 
@@ -222,6 +244,7 @@ def filter_json(graph, nodes, nodelist, meshviewer):
 	filter_graph(graph, valid_nodes)
 	filter_meshviewer(meshviewer, valid_nodes)
 	add_gw_nexthop(nodes, meshviewer)
+	add_uplink(nodes)
 	filter_nodelist(nodelist, valid_nodes)
 
 	mactypes = get_ifmac_types(nodes)
