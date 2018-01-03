@@ -44,112 +44,10 @@ def filter_meshviewer(meshviewer, valid_nodes):
 	nodes_dst = filter(lambda n: valid_nodes[n['target']], nodes_src)
 	meshviewer['links'] = list(nodes_dst)
 
-def filter_graph(graph, valid_nodes):
-	orig_pos = 0
-	new_pos = 0
-	pos_map = {}
-
-	# calculate new list of nodes but first create mapping for old to new node index
-	for n in graph['batadv']['nodes']:
-		if 'node_id' in n and n['node_id'] in valid_nodes and valid_nodes[n['node_id']]:
-			pos_map[orig_pos] = new_pos
-			new_pos += 1
-		orig_pos += 1
-
-	nodes_ffv = filter(lambda n:'node_id' in n and n['node_id'] in valid_nodes and valid_nodes[n['node_id']], graph['batadv']['nodes'])
-	graph['batadv']['nodes'] = list(nodes_ffv)
-
-	# filter links with their new ids
-	new_links = []
-	for l in graph['batadv']['links']:
-		if not l['source'] in pos_map:
-			continue
-
-		if not l['target'] in pos_map:
-			continue
-
-		l['source'] = pos_map[l['source']]
-		l['target'] = pos_map[l['target']]
-
-		new_links.append(l)
-
-	graph['batadv']['links'] = new_links
-
 def filter_nodelist(nodelist, valid_nodes):
 	nodes_ffv = filter(lambda n: n['id'] in valid_nodes and valid_nodes[n['id']], nodelist['nodes'])
 
 	nodelist['nodes'] = list(nodes_ffv)
-
-def get_ifmac_types(nodes):
-	mactypes = {}
-
-	for n in nodes['nodes']:
-		if not 'nodeinfo' in n:
-			continue
-
-		if not 'node_id' in n['nodeinfo']:
-			continue
-
-		if not 'network' in n['nodeinfo']:
-			continue
-
-		if not 'mesh' in n['nodeinfo']['network']:
-			continue
-
-		mesh = n['nodeinfo']['network']['mesh']
-		for meshif in mesh:
-			if not 'interfaces' in mesh[meshif]:
-				continue
-
-			interfaces = mesh[meshif]['interfaces']
-			for t in interfaces:
-				for mac in interfaces[t]:
-					mactypes[mac] = t
-
-	return mactypes
-
-def map_graph_link_types(graph, mactypes):
-	if not 'batadv' in graph:
-		return
-
-	if not 'links' in graph['batadv']:
-		return
-
-	links = graph['batadv']['links']
-
-	# assigning type
-	for l in links:
-		mac_dst = l.get('dst')
-		mac_src = l.get('src')
-
-		td = None
-		if mac_dst in mactypes:
-			td = mactypes[mac_dst]
-
-		ts = None
-		if mac_src in mactypes:
-			ts = mactypes[mac_src]
-
-		if ts == 'l2tp' or td == 'l2tp':
-			l['type'] = 'tunnel'
-		elif ts == 'fastd' or td == 'fastd':
-			l['type'] = 'tunnel'
-		elif ts == 'tunnel' or td == 'tunnel':
-			l['type'] = 'tunnel'
-		elif td:
-			l['type'] = td
-
-	# cleanup
-	for l in links:
-		if 'dst' in l:
-			del(l['dst'])
-
-		if 'src' in l:
-			del(l['src'])
-
-		# remove VPN info when we have tunnel type
-		if 'type' in l and 'vpn' in l:
-			del(l['vpn'])
 
 def add_gw_nexthop(nodes, meshviewer):
 	nexthops_id = {}
@@ -237,18 +135,103 @@ def add_uplink(nodes):
 
 		n['flags']['uplink'] = True
 
-def filter_json(graph, nodes, nodelist, meshviewer):
+
+def extract_graph(meshviewer):
+	graph = {
+		"version": 1,
+		"batadv": {
+			"multigraph": True,
+			"graph": {},
+			"directed": True,
+			"nodes": [],
+			"links": [],
+		},
+	}
+
+	endpoints_map = {}
+	endpoints = graph['batadv']['nodes']
+	links = graph['batadv']['links']
+
+	pos = 0
+	for l in meshviewer['links']:
+		if not 'source' in l:
+			continue
+		if not 'source_mac' in l:
+			continue
+		if not 'source_tq' in l:
+			continue
+		if not 'target' in l:
+			continue
+		if not 'target_mac' in l:
+			continue
+		if not 'target_tq' in l:
+			continue
+		if not 'type' in l:
+			continue
+
+		src = (l['source'], l['source_mac'])
+		dst = (l['target'], l['target_mac'])
+
+		if not src in endpoints_map:
+			endpoints.append({
+				"node_id": src[0],
+				"id": src[1],
+			})
+			endpoints_map[src] = pos
+			pos += 1
+
+		if not dst in endpoints_map:
+			endpoints.append({
+				"node_id": dst[0],
+				"id": dst[1],
+			})
+			endpoints_map[dst] = pos
+			pos += 1
+
+		if l['target_tq'] <= 0:
+			l['target_tq'] = 0.01
+
+		if l['source_tq'] <= 0:
+			l['source_tq'] = 0.01
+
+
+		if l["type"] == "vpn":
+			mapped_type = "tunnel"
+		elif l["type"] == "wifi":
+			mapped_type = "wireless"
+		else:
+			mapped_type = l["type"]
+
+		links.append({
+			"key" : 0,
+			"src" : l['source_mac'],
+			"dst" : l['target_mac'],
+			"source" : endpoints_map[src],
+			"target" : endpoints_map[dst],
+			"tq" : 1. / l['source_tq'],
+			"type": mapped_type,
+		})
+
+		links.append({
+			"key" : 0,
+			"src" : l['target_mac'],
+			"dst" : l['source_mac'],
+			"source" : endpoints_map[dst],
+			"target" : endpoints_map[src],
+			"tq" : 1. / l['target_tq'],
+			"type": mapped_type,
+		})
+
+	return graph
+
+def filter_json(nodes, nodelist, meshviewer):
 	valid_nodes = get_nodes_validity(nodes)
 
 	filter_nodes(nodes, valid_nodes)
-	filter_graph(graph, valid_nodes)
 	filter_meshviewer(meshviewer, valid_nodes)
 	add_gw_nexthop(nodes, meshviewer)
 	add_uplink(nodes)
 	filter_nodelist(nodelist, valid_nodes)
-
-	mactypes = get_ifmac_types(nodes)
-	map_graph_link_types(graph, mactypes)
 
 def main():
 	if len(sys.argv) != 3:
@@ -258,7 +241,6 @@ def main():
 	inpath = sys.argv[1]
 	outpath = sys.argv[2]
 
-	graph_in = os.path.join(inpath, "graph.json")
 	graph_out = os.path.join(outpath, "graph.json")
 	graph_outtmp = os.path.join(outpath, "graph.json.tmp")
 	nodes_in = os.path.join(inpath, "nodes.json")
@@ -272,12 +254,12 @@ def main():
 	meshviewer_outtmp = os.path.join(outpath, "meshviewer.json.tmp")
 
 	# load
-	graph = json.load(open(graph_in))
 	nodes = json.load(open(nodes_in))
 	nodelist = json.load(open(nodelist_in))
 	meshviewer = json.load(open(meshviewer_in))
 
-	filter_json(graph, nodes, nodelist, meshviewer)
+	filter_json(nodes, nodelist, meshviewer)
+	graph = extract_graph(meshviewer)
 
 	# save
 	dump_json(graph, graph_outtmp)
