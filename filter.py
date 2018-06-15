@@ -181,13 +181,9 @@ def extract_graph(meshviewer):
     for l in meshviewer['links']:
         if 'source' not in l:
             continue
-        if 'source_mac' not in l:
-            continue
         if 'source_tq' not in l:
             continue
         if 'target' not in l:
-            continue
-        if 'target_mac' not in l:
             continue
         if 'target_tq' not in l:
             continue
