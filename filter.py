@@ -45,7 +45,7 @@ def filter_nodes(nodes, valid_nodes):
 
 def filter_meshviewer(meshviewer, valid_nodes):
     # only save valid nodes
-    nodes_ffv = filter(lambda n: valid_nodes[n['node_id']],
+    nodes_ffv = filter(lambda n: n['node_id'] in valid_nodes and valid_nodes[n['node_id']],
                        meshviewer['nodes'])
     meshviewer['nodes'] = list(nodes_ffv)
 
